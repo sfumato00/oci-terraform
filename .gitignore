@@ -1,0 +1,32 @@
+# Terraform state and plan files
+*.tfstate
+*.tfstate.*
+tfplan
+*.tfplan
+
+# Terraform directory
+.terraform/
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Crash log
+crash.log
+crash.*.log
+
+# Exclude CLI config files
+.terraformrc
+terraform.rc
+
+# Notes
+.note/
+
+# macOS
+.DS_Store
