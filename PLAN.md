@@ -142,8 +142,8 @@ oci session validate --profile tlbb
 oci os ns get --profile tlbb --auth security_token
 
 terraform -chdir=bootstrap init
-terraform -chdir=bootstrap plan -var-file=../terraform.tfvars
-terraform -chdir=bootstrap apply -var-file=../terraform.tfvars
+terraform -chdir=bootstrap plan
+terraform -chdir=bootstrap apply
 
 # Then wire the main stack to use remote state:
 terraform -chdir=bootstrap output backend_snippet
@@ -200,26 +200,37 @@ Populate NSG with all ingress/egress rules driven by input variables.
 
 ---
 
-### Phase 4 — Compute Instances `[ ]`
+### Phase 4 — Compute Instances `[x]`
 4 `VM.Standard.A1.Flex` instances with stable private IPs, Ubuntu 24.04 aarch64.
 
 **Files:**
-- `compute.tf` — instances, VNIC configs, 50 GB boot volumes
-- `data.tf` — Ubuntu 24.04 Minimal aarch64 image OCID lookup
+- `compute.tf` — instances, VNIC configs, 50 GB boot volumes, free-tier lifecycle preconditions
+- `data.tf` — AD list + Ubuntu 24.04 Minimal aarch64 image lookup (latest, sorted by TIMECREATED DESC)
 
 **Inputs added:**
-- `ssh_public_key` (required)
-- `instance_count` (default 4, validated ≤ 4)
+- `ssh_public_key` (required, sensitive)
+- `instance_count` (default 4, validated 1–4)
 - `ocpu_per_instance` (default 1)
 - `memory_gb_per_instance` (default 6)
 - `boot_volume_gb` (default 50)
-- `availability_domain_strategy` (`spread` or `single`)
+- `availability_domain_strategy` (`spread` or `single`, default `spread`)
 
-**Free-tier validations:** instance_count, total OCPUs, total memory, total storage.
+**Private IPs:** `10.42.1.11`–`10.42.1.14` (within subnet `10.42.1.0/24`).
+
+**Free-tier validations (lifecycle preconditions):** total OCPUs ≤ 4, total memory ≤ 24 GB, total storage ≤ 200 GB.
 
 **Testable outcomes:**
-- `terraform plan` shows 4 instances, 0 extra block volumes, 0 LBs
+- `terraform validate` passes ✓
+- Add `ssh_public_key` to tfvars, then `terraform plan` shows 4 instances, 0 extra block volumes, 0 LBs
 - `terraform apply` succeeds; SSH reachable from allowed CIDR
+
+**Usage:**
+```bash
+# Add to terraform.tfvars (or pass as -var):
+# ssh_public_key = "ssh-ed25519 AAAA..."
+terraform plan -var-file=terraform.tfvars
+terraform apply -var-file=terraform.tfvars
+```
 
 ---
 
@@ -293,7 +304,7 @@ Usable example vars file and usage documentation.
 | 1 — Bootstrap State Backend | Complete | `terraform validate` passes; ready to apply |
 | 2 — Core Network | Complete | `terraform validate` passes; ready to apply |
 | 3 — NSG Rules | Complete | `terraform validate` passes |
-| 4 — Compute Instances | Not started | |
+| 4 — Compute Instances | Complete | `terraform validate` passes; add `ssh_public_key` to tfvars before apply |
 | 5 — cloud-init / Nginx Proxy | Not started | |
 | 6 — Observability | Not started | |
 | 7 — Outputs, Tags, Hardening | Not started | |

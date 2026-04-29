@@ -82,8 +82,51 @@ variable "mud_upstream_port" {
   type        = number
 }
 
-variable "mud_upstream_cidrs" {
-  description = "Optional list of CIDRs for the upstream MUD server. When set, egress to the upstream port is restricted to these CIDRs. When empty, broader egress is allowed because OCI NSGs cannot target hostnames."
-  type        = list(string)
-  default     = []
+
+# ── Compute ──────────────────────────────────────────────────────────────────
+
+variable "ssh_public_key" {
+  description = "SSH public key material placed in authorized_keys on each instance."
+  type        = string
+  sensitive   = true
+}
+
+variable "instance_count" {
+  description = "Number of A1 Flex instances to create (1–4; Always Free cap is 4 total OCPUs / 24 GB)."
+  type        = number
+  default     = 4
+
+  validation {
+    condition     = var.instance_count >= 1 && var.instance_count <= 4
+    error_message = "instance_count must be between 1 and 4."
+  }
+}
+
+variable "ocpu_per_instance" {
+  description = "OCPU count per A1 Flex instance."
+  type        = number
+  default     = 1
+}
+
+variable "memory_gb_per_instance" {
+  description = "Memory in GB per A1 Flex instance."
+  type        = number
+  default     = 6
+}
+
+variable "boot_volume_gb" {
+  description = "Boot volume size in GB per instance (default 50 GB × 4 = 200 GB Always Free limit)."
+  type        = number
+  default     = 50
+}
+
+variable "availability_domain_strategy" {
+  description = "Placement strategy: 'spread' distributes instances across ADs round-robin; 'single' puts all in AD[0]. Use 'single' for single-AD regions."
+  type        = string
+  default     = "spread"
+
+  validation {
+    condition     = contains(["spread", "single"], var.availability_domain_strategy)
+    error_message = "availability_domain_strategy must be 'spread' or 'single'."
+  }
 }

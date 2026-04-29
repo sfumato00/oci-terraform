@@ -128,36 +128,14 @@ resource "oci_core_network_security_group_security_rule" "https_egress" {
   }
 }
 
-# ── Egress: upstream MUD port (restricted when mud_upstream_cidrs is set) ───
+# ── Egress: upstream MUD port ────────────────────────────────────────────────
 
-# Restricted path: one rule per upstream CIDR.
-resource "oci_core_network_security_group_security_rule" "mud_upstream_egress_restricted" {
-  for_each = toset(var.mud_upstream_cidrs)
-
+resource "oci_core_network_security_group_security_rule" "mud_upstream_egress" {
   network_security_group_id = oci_core_network_security_group.instances.id
   direction                 = "EGRESS"
   protocol                  = "6"
 
-  destination      = each.value
-  destination_type = "CIDR_BLOCK"
-
-  tcp_options {
-    destination_port_range {
-      min = var.mud_upstream_port
-      max = var.mud_upstream_port
-    }
-  }
-}
-
-# Broad path: used when mud_upstream_cidrs is empty (hostname cannot be targeted).
-resource "oci_core_network_security_group_security_rule" "mud_upstream_egress_broad" {
-  count = length(var.mud_upstream_cidrs) == 0 ? 1 : 0
-
-  network_security_group_id = oci_core_network_security_group.instances.id
-  direction                 = "EGRESS"
-  protocol                  = "6"
-
-  destination      = "0.0.0.0/0"
+  destination      = "${var.mud_upstream_host}/32"
   destination_type = "CIDR_BLOCK"
 
   tcp_options {

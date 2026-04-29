@@ -27,6 +27,7 @@ terraform.rc
 
 # Notes
 .note/
+.vscode/
 
 # macOS
 .DS_Store
