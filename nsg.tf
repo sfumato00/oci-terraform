@@ -30,7 +30,7 @@ resource "oci_core_network_security_group_security_rule" "ssh_ingress" {
 
 resource "oci_core_network_security_group_security_rule" "mud_ingress" {
   for_each = {
-    for pair in setproduct(var.allowed_source_cidrs, var.allowed_tcp_ports) :
+    for pair in setproduct(var.allowed_source_cidrs, [for p in var.tcp_proxies : p.listen_port]) :
     "${pair[0]}:${pair[1]}" => { cidr = pair[0], port = pair[1] }
   }
 
@@ -131,17 +131,22 @@ resource "oci_core_network_security_group_security_rule" "https_egress" {
 # ── Egress: upstream MUD port ────────────────────────────────────────────────
 
 resource "oci_core_network_security_group_security_rule" "mud_upstream_egress" {
+  for_each = {
+    for p in var.tcp_proxies :
+    "${p.upstream_ip}:${p.upstream_port}" => p
+  }
+
   network_security_group_id = oci_core_network_security_group.instances.id
   direction                 = "EGRESS"
   protocol                  = "6"
 
-  destination      = "${var.mud_upstream_host}/32"
+  destination      = "${each.value.upstream_ip}/32"
   destination_type = "CIDR_BLOCK"
 
   tcp_options {
     destination_port_range {
-      min = var.mud_upstream_port
-      max = var.mud_upstream_port
+      min = each.value.upstream_port
+      max = each.value.upstream_port
     }
   }
 }

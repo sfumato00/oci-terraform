@@ -29,6 +29,7 @@ Before planning, confirm that `terraform.tfvars` contains the required root vari
 - `allowed_source_cidrs`
 - `allowed_tcp_ports`
 - `mud_upstream_host`
+- `mud_upstream_ip`
 - `mud_upstream_port`
 - `ssh_public_key`
 

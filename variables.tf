@@ -66,20 +66,15 @@ variable "allowed_source_cidrs" {
   }
 }
 
-variable "allowed_tcp_ports" {
-  description = "TCP ports the MUD proxy listens on (opened to allowed_source_cidrs)."
-  type        = list(number)
-  default     = [23]
-}
-
-variable "mud_upstream_host" {
-  description = "Hostname or IP of the upstream MUD/game server."
-  type        = string
-}
-
-variable "mud_upstream_port" {
-  description = "TCP port of the upstream MUD/game server."
-  type        = number
+variable "tcp_proxies" {
+  description = "Explicit list of TCP proxy mappings. Each entry binds one listen port to one upstream."
+  type = list(object({
+    listen_port   = number
+    upstream_host = string
+    upstream_ip   = string
+    upstream_port = number
+  }))
+  default = []
 }
 
 
@@ -129,4 +124,10 @@ variable "availability_domain_strategy" {
     condition     = contains(["spread", "single"], var.availability_domain_strategy)
     error_message = "availability_domain_strategy must be 'spread' or 'single'."
   }
+}
+
+variable "install_tintin" {
+  description = "Install tintin++ MUD client on each instance via cloud-init."
+  type        = bool
+  default     = true
 }
