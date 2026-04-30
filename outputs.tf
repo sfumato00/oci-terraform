@@ -18,12 +18,15 @@ output "instance_private_ips" {
 
 output "proxy_ports" {
   description = "TCP ports the nginx stream proxy listens on."
-  value       = var.allowed_tcp_ports
+  value       = [for p in var.nginx_reverse_proxies : p.listen_port]
 }
 
 output "mud_upstream" {
-  description = "Upstream MUD server the proxy forwards to."
-  value       = "${var.mud_upstream_host}:${var.mud_upstream_port}"
+  description = "Upstream MUD servers the proxy forwards to."
+  value = {
+    for p in var.nginx_reverse_proxies :
+    p.listen_port => "${p.upstream_host}:${p.upstream_port}"
+  }
 }
 
 output "ssh_commands" {
@@ -39,8 +42,8 @@ output "client_connect_examples" {
   value = {
     for i, inst in oci_core_instance.mud_proxy :
     local.instance_names[i] => [
-      for port in var.allowed_tcp_ports :
-      "telnet ${inst.public_ip} ${port}"
+      for p in var.nginx_reverse_proxies :
+      "telnet ${inst.public_ip} ${p.listen_port}"
     ]
   }
 }

@@ -13,17 +13,16 @@ locals {
   instance_ips   = [for i in range(var.instance_count) : "10.42.1.${11 + i}"]
   instance_names = [for i in range(var.instance_count) : format("mud-proxy-%02d", i + 1)]
 
-  # Nginx stream config: one upstream + one server block per tcp_proxies entry.
-  nginx_stream_config = join("\n\n", [
-    for p in var.tcp_proxies :
+  # Nginx stream config: one upstream + one server block per nginx_reverse_proxies entry.
+  nginx_stream_config = "${join("\n\n", [
+    for p in var.nginx_reverse_proxies :
     "upstream proxy_${p.listen_port} {\n    server ${p.upstream_host}:${p.upstream_port};\n}\n\nserver {\n    listen ${p.listen_port};\n    proxy_pass proxy_${p.listen_port};\n}"
-  ]) + "\n"
+  ])}\n"
 
   cloud_init_userdata = base64encode(templatefile(
     "${path.module}/templates/cloud-init.yaml.tpl",
     {
       nginx_stream_config_b64 = base64encode(local.nginx_stream_config)
-      install_tintin          = var.install_tintin
     }
   ))
 }

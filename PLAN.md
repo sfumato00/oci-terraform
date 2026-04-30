@@ -258,20 +258,16 @@ Bootstrap each instance with Nginx stream TCP proxy to upstream MUD server.
 
 **cloud-init steps:**
 1. `package_update` + `package_upgrade`
-2. Install `nginx`, `libnginx-mod-stream`, `curl`, `tcpdump`, `netcat-openbsd`, `jq`, `unzip`; optionally `tintin++` (`install_tintin`, default true)
+2. Install `nginx`, `libnginx-mod-stream`, `curl`, `tcpdump`, `netcat-openbsd`, `jq`, `unzip`;
 3. `write_files`: `/etc/nginx/stream.d/mud-proxy.conf` (base64-encoded, rendered by Terraform)
 4. `runcmd`: append `stream { include ... }` to nginx.conf, `nginx -t`, `systemctl enable+restart nginx`
 
 **Nginx config rendered in Terraform** (`local.nginx_stream_config`): one upstream block + one server block per `allowed_tcp_ports` entry.
 
-**Inputs added:**
-- `install_tintin` (bool, default true)
-
 **Testable outcomes:**
 - `terraform validate` passes ✓
 - After apply: `systemctl status nginx` active on instance
 - `nc -zv <public-ip> <mud-port>` connects through to upstream
-- `tintin++` binary present when `install_tintin = true`
 
 ---
 

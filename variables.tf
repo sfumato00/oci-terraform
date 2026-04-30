@@ -66,7 +66,7 @@ variable "allowed_source_cidrs" {
   }
 }
 
-variable "tcp_proxies" {
+variable "nginx_reverse_proxies" {
   description = "Explicit list of TCP proxy mappings. Each entry binds one listen port to one upstream."
   type = list(object({
     listen_port   = number
@@ -76,7 +76,6 @@ variable "tcp_proxies" {
   }))
   default = []
 }
-
 
 # ── Compute ──────────────────────────────────────────────────────────────────
 
@@ -124,10 +123,4 @@ variable "availability_domain_strategy" {
     condition     = contains(["spread", "single"], var.availability_domain_strategy)
     error_message = "availability_domain_strategy must be 'spread' or 'single'."
   }
-}
-
-variable "install_tintin" {
-  description = "Install tintin++ MUD client on each instance via cloud-init."
-  type        = bool
-  default     = true
 }

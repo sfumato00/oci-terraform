@@ -10,9 +10,6 @@ packages:
   - netcat-openbsd
   - jq
   - unzip
-%{ if install_tintin ~}
-  - tintin++
-%{ endif ~}
 
 write_files:
   - path: /etc/nginx/stream.d/mud-proxy.conf
