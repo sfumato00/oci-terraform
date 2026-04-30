@@ -139,3 +139,29 @@ variable "availability_domain_strategy" {
     error_message = "availability_domain_strategy must be 'spread' or 'single'."
   }
 }
+
+# ── Observability ─────────────────────────────────────────────────────────────
+
+variable "alarm_email" {
+  description = "Email address for alarm notifications. Leave empty to suppress email delivery (alarms still visible in OCI Monitoring console)."
+  type        = string
+  default     = ""
+}
+
+variable "alarm_cpu_threshold" {
+  description = "CPU utilization percentage that triggers the high-CPU alarm."
+  type        = number
+  default     = 80
+}
+
+variable "enable_flow_logs" {
+  description = "Enable VCN subnet flow logs. Off by default; consumes OCI Always Free 10 GB/month logging quota."
+  type        = bool
+  default     = false
+}
+
+variable "flow_logs_retention_days" {
+  description = "Retention in days for VCN flow logs when enabled. Shorter values reduce log ingestion against the free quota."
+  type        = number
+  default     = 30
+}

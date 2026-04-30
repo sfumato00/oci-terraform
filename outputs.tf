@@ -53,7 +53,7 @@ output "nginx_stream_config" {
   value       = local.nginx_stream_config
 }
 
-output "tt++" {
+output "tintin_connection_strings" {
   description = "tintin++ config shortcut."
   value = {
     for i, inst in oci_core_instance.mud_proxy :

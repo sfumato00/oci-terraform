@@ -271,22 +271,33 @@ Bootstrap each instance with Nginx stream TCP proxy to upstream MUD server.
 
 ---
 
-### Phase 6 — Observability `[ ]`
+### Phase 6 — Observability `[x]`
 OCI Monitoring alarms and optional email notifications.
 
 **Files:**
 - `monitoring.tf`
 
 **Resources:**
-- Alarm: instance availability
-- Alarm: CPU > 80% sustained
-- OCI Notification topic + email subscription (behind `alarm_email`, default empty)
-- VCN flow logs (behind `enable_flow_logs`, default false)
+- `oci_monitoring_alarm.cpu_high` — fires when `CpuUtilization[5m].mean() > alarm_cpu_threshold` for 5 min (default 80%)
+- `oci_monitoring_alarm.instance_availability` — fires when `CpuUtilization[5m].absent()` for 5 min (instance may be down)
+- `oci_ons_notification_topic.alarms` + `oci_ons_subscription.email` — gated on `alarm_email != ""`
+- `oci_logging_log_group.flow_logs` + `oci_logging_log.subnet_flow` — gated on `enable_flow_logs = true`
+
+**Design note:** Alarms are always created and visible in the OCI Monitoring console. ONS topic + email subscription are conditional on `alarm_email`. Alarm `destinations = []` when no email is set (alarms fire silently to console).
+
+**New variables:**
+- `alarm_email` (default `""`)
+- `alarm_cpu_threshold` (default `80`)
+- `enable_flow_logs` (default `false`)
+- `flow_logs_retention_days` (default `30`)
 
 **Testable outcomes:**
-- `alarm_email = ""` → 0 notification resources in plan
-- `alarm_email` set → topic + subscription in plan
-- Alarms visible in OCI Monitoring after apply
+- `terraform validate` passes ✓
+- `alarm_email = ""` → 0 ONS notification resources in plan ✓ (gated via count)
+- `alarm_email` set → topic + subscription in plan ✓ (gated via count)
+- Alarms always created; visible in OCI Monitoring after apply
+- `enable_flow_logs = false` → 0 logging resources in plan ✓
+- VCN subnet flow logs with configurable retention when enabled
 
 ---
 
@@ -349,7 +360,7 @@ Document and rehearse safe state migration steps for existing resources when mod
 | 3 — NSG Rules | Complete | `terraform validate` passes |
 | 4 — Compute Instances | Complete | `terraform validate` passes; add `ssh_public_key` to tfvars before apply |
 | 5 — cloud-init / Nginx Proxy | Complete | `terraform validate` passes; nginx stream config rendered by Terraform |
-| 6 — Observability | Not started | |
+| 6 — Observability | Complete | `terraform validate` passes; alarms always on, ONS gated on `alarm_email` |
 | 7 — Outputs, Tags, Hardening | Not started | |
 | 8 — Docs and tfvars Example | Not started | |
 | 9 — State Migration Runbook | Not started | Added graceful migration workflow for module/resource address changes |
