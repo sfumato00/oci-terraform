@@ -103,6 +103,21 @@ Scaffold IaC for Oracle Cloud Infrastructure (OCI) for personal gaming and learn
   4. Apply main stack with remote state.
 - Backend config kept in example file (Terraform backends cannot use input variables).
 
+### Terraform state migrations
+When Terraform resources are renamed, moved into modules, or moved between modules, migrate the existing state addresses before applying infrastructure changes.
+
+**Graceful migration workflow:**
+1. Confirm the current backend is healthy: `terraform init` and `terraform state list`.
+2. Capture a restorable backup before touching addresses: `terraform state pull > state-backup-$(date +%Y%m%d-%H%M%S).json`.
+3. Refresh and inspect current reality: `terraform plan -refresh-only`.
+4. Create an address map from old state addresses to new module/resource addresses.
+5. Prefer Terraform `moved` blocks in code for simple renames or moves into modules, for example root resources becoming `module.network.*`.
+6. Run `terraform plan` and confirm Terraform reports moved resources instead of destroy/create replacements.
+7. If `moved` blocks are not enough, run explicit state moves with dry runs first: `terraform state mv -dry-run <old_address> <new_address>`, then `terraform state mv <old_address> <new_address>`.
+8. For resources that already exist in OCI but are missing from state, add matching config and import them with `terraform import <address> <oci_resource_ocid>`.
+9. Re-run `terraform plan`; proceed only when the plan contains expected in-place updates or no-op moves, with no unintended destroys.
+10. Keep temporary `moved` blocks for at least one successful apply/release cycle so collaborators and future workspaces migrate safely.
+
 ### Security
 - No default to `0.0.0.0/0`; `allowed_source_cidrs` is required.
 - SSH keys only; password auth disabled.
@@ -234,22 +249,29 @@ terraform apply -var-file=terraform.tfvars
 
 ---
 
-### Phase 5 — cloud-init / Nginx Stream Proxy `[ ]`
+### Phase 5 — cloud-init / Nginx Stream Proxy `[x]`
 Bootstrap each instance with Nginx stream TCP proxy to upstream MUD server.
 
 **Files:**
-- `templates/cloud-init.yaml.tpl`
+- `templates/cloud-init.yaml.tpl` — cloud-init template (packages, write_files, runcmd)
+- `compute.tf` (updated) — nginx config rendered as local; `user_data` wired into instance metadata
 
 **cloud-init steps:**
-1. `apt-get update && upgrade`
-2. Install `nginx`, `libnginx-mod-stream`, `tintin++` (variable `install_tintin`, default true), `curl`, `tcpdump`, `netcat-openbsd`, `jq`, `unzip`
-3. Write Nginx `stream {}` config pointing to `mud_upstream_host:mud_upstream_port`
-4. `systemctl enable --now nginx`
+1. `package_update` + `package_upgrade`
+2. Install `nginx`, `libnginx-mod-stream`, `curl`, `tcpdump`, `netcat-openbsd`, `jq`, `unzip`; optionally `tintin++` (`install_tintin`, default true)
+3. `write_files`: `/etc/nginx/stream.d/mud-proxy.conf` (base64-encoded, rendered by Terraform)
+4. `runcmd`: append `stream { include ... }` to nginx.conf, `nginx -t`, `systemctl enable+restart nginx`
+
+**Nginx config rendered in Terraform** (`local.nginx_stream_config`): one upstream block + one server block per `allowed_tcp_ports` entry.
+
+**Inputs added:**
+- `install_tintin` (bool, default true)
 
 **Testable outcomes:**
-- `systemctl status nginx` active on instance
-- TCP connect to `<public-ip>:<mud-port>` reaches upstream
-- `tintin++` binary present (if enabled)
+- `terraform validate` passes ✓
+- After apply: `systemctl status nginx` active on instance
+- `nc -zv <public-ip> <mud-port>` connects through to upstream
+- `tintin++` binary present when `install_tintin = true`
 
 ---
 
@@ -297,6 +319,31 @@ Usable example vars file and usage documentation.
 
 ---
 
+### Phase 9 — State Migration Runbook `[ ]`
+Document and rehearse safe state migration steps for existing resources when module boundaries or Terraform addresses change.
+
+**Files:**
+- `PLAN.md` — migration workflow and checklist
+- Optional `moved.tf` — temporary `moved` blocks for resource/module address changes
+
+**Steps:**
+1. List current addresses: `terraform state list`.
+2. Back up remote state: `terraform state pull > state-backup-$(date +%Y%m%d-%H%M%S).json`.
+3. Draft an old-address to new-address mapping for every renamed or module-moved resource.
+4. Add `moved` blocks for direct address changes where possible.
+5. Run `terraform plan` and verify Terraform shows moves, not replacement destroys.
+6. Use `terraform state mv -dry-run` and then `terraform state mv` only for migrations that cannot be represented cleanly with `moved` blocks.
+7. Import any pre-existing OCI resources that are now represented in Terraform config but absent from state.
+8. Run a final `terraform plan`; apply only after confirming there are no unintended destroys.
+
+**Testable outcomes:**
+- State backup file exists before any migration command runs
+- Address mapping reviewed against `terraform state list`
+- `terraform plan` shows expected `moved` notices or no-op changes
+- No existing OCI resources are destroyed solely because module addresses changed
+
+---
+
 ## Progress Log
 
 | Phase | Status | Notes |
@@ -305,7 +352,8 @@ Usable example vars file and usage documentation.
 | 2 — Core Network | Complete | `terraform validate` passes; ready to apply |
 | 3 — NSG Rules | Complete | `terraform validate` passes |
 | 4 — Compute Instances | Complete | `terraform validate` passes; add `ssh_public_key` to tfvars before apply |
-| 5 — cloud-init / Nginx Proxy | Not started | |
+| 5 — cloud-init / Nginx Proxy | Complete | `terraform validate` passes; nginx stream config rendered by Terraform |
 | 6 — Observability | Not started | |
 | 7 — Outputs, Tags, Hardening | Not started | |
 | 8 — Docs and tfvars Example | Not started | |
+| 9 — State Migration Runbook | Not started | Added graceful migration workflow for module/resource address changes |
