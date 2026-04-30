@@ -52,3 +52,24 @@ output "nginx_stream_config" {
   description = "Rendered nginx stream config deployed to each instance."
   value       = local.nginx_stream_config
 }
+
+output "tt++" {
+  description = "tintin++ config shortcut."
+  value = {
+    for i, inst in oci_core_instance.mud_proxy :
+    local.instance_names[i] => "{HOST} {@${inst.public_ip}}"
+  }
+}
+
+output "proxy_test_commands" {
+  description = "Ready-to-run nc and curl commands for validating each proxy listener."
+  value = {
+    for i, inst in oci_core_instance.mud_proxy :
+    local.instance_names[i] => flatten([
+      for p in var.nginx_reverse_proxies : [
+        "nc -vz ${inst.public_ip} ${p.listen_port}",
+        "curl -v --connect-timeout 5 telnet://${inst.public_ip}:${p.listen_port}",
+      ]
+    ])
+  }
+}
