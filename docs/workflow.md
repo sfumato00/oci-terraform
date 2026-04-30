@@ -131,6 +131,16 @@ After reviewing the plan, apply the root stack:
 terraform apply -var-file=terraform.tfvars
 ```
 
+## 8. Shortcut
+
+```bash
+terraform init -migrate-state
+terraform fmt -check -diff
+terraform validate
+terraform plan -var-file=terraform.tfvars -out tfplan.bin
+terraform apply "tfplan.bin"
+```
+
 ## 8. Graceful Destroy
 
 Use a saved destroy plan so the apply matches the reviewed plan exactly.

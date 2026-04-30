@@ -38,7 +38,7 @@ write_files:
       [ -n "$ports" ] || exit 0
 
       iptables -C INPUT -p tcp -m multiport --dports "$ports" -j ACCEPT 2>/dev/null ||
-        iptables -I INPUT 5 -p tcp -m multiport --dports "$ports" -j ACCEPT
+        iptables -I INPUT 1 -p tcp -m multiport --dports "$ports" -j ACCEPT
 
   - path: /etc/systemd/system/mud-proxy-firewall.service
     permissions: '0644'
@@ -59,8 +59,8 @@ write_files:
 
 runcmd:
   - rm -f /etc/nginx/sites-enabled/default
-  - /usr/local/sbin/mud-proxy-firewall
-  - systemctl enable mud-proxy-firewall.service
+  - systemctl daemon-reload
+  - systemctl enable --now mud-proxy-firewall.service
   - nginx -t
   - systemctl enable nginx
   - systemctl restart nginx
