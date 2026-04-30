@@ -13,15 +13,21 @@ locals {
   instance_ips   = [for i in range(var.instance_count) : "10.42.1.${11 + i}"]
   instance_names = [for i in range(var.instance_count) : format("mud-proxy-%02d", i + 1)]
 
-  # Nginx stream config: one upstream + one server block per nginx_reverse_proxies entry.
-  nginx_stream_config = "${join("\n\n", [
-    for p in var.nginx_reverse_proxies :
-    "upstream proxy_${p.listen_port} {\n    server ${p.upstream_host}:${p.upstream_port};\n}\n\nserver {\n    listen ${p.listen_port};\n    proxy_pass proxy_${p.listen_port};\n}"
-  ])}\n"
+  # Nginx stream config: rendered from a template for direct top-level inclusion.
+  nginx_stream_config = templatefile(
+    "${path.module}/templates/nginx-stream.conf.tpl",
+    {
+      nginx_reverse_proxies = var.nginx_reverse_proxies
+    }
+  )
+
+  nginx_config = file("${path.module}/templates/nginx.conf")
 
   cloud_init_userdata = base64encode(templatefile(
     "${path.module}/templates/cloud-init.yaml.tpl",
     {
+      nginx_config_b64        = base64encode(local.nginx_config)
+      nginx_proxy_ports_csv   = join(",", [for p in var.nginx_reverse_proxies : tostring(p.listen_port)])
       nginx_stream_config_b64 = base64encode(local.nginx_stream_config)
     }
   ))
@@ -33,7 +39,7 @@ resource "oci_core_instance" "mud_proxy" {
   availability_domain = local.instance_ads[count.index]
   compartment_id      = var.compartment_ocid
   display_name        = local.instance_names[count.index]
-  shape               = "VM.Standard.A1.Flex"
+  shape               = var.instance_shape
 
   shape_config {
     ocpus         = var.ocpu_per_instance

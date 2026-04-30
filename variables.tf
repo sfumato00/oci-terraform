@@ -85,6 +85,11 @@ variable "ssh_public_key" {
   sensitive   = true
 }
 
+variable "instance_shape" {
+  description = "Shape of the A1 Flex instance. The shape name encodes OCPU and memory (e.g. A1.Flex2 has 2 OCPUs and 12 GB RAM)."
+  type        = string
+}
+
 variable "instance_count" {
   description = "Number of A1 Flex instances to create (1–4; Always Free cap is 4 total OCPUs / 24 GB)."
   type        = number
@@ -106,12 +111,22 @@ variable "memory_gb_per_instance" {
   description = "Memory in GB per A1 Flex instance."
   type        = number
   default     = 6
+
+  validation {
+    condition = var.instance_count * var.memory_gb_per_instance <= 24
+    error_message = "total memory must not exceed 24 GB"
+  }
 }
 
 variable "boot_volume_gb" {
   description = "Boot volume size in GB per instance (default 50 GB × 4 = 200 GB Always Free limit)."
   type        = number
   default     = 50
+
+  validation {
+    condition = var.instance_count * var.boot_volume_gb <= 200
+    error_message = "total boot_volume_gb must not exeed 200"
+  }
 }
 
 variable "availability_domain_strategy" {
