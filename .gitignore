@@ -1,7 +1,7 @@
 # Terraform state and plan files
 *.tfstate
 *.tfstate.*
-tfplan
+tfplan**
 *.tfplan
 plan.json
 
