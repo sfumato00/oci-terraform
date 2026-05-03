@@ -27,6 +27,7 @@ output "mud_upstream" {
     for p in var.nginx_reverse_proxies :
     p.listen_port => "${p.upstream_host}:${p.upstream_port}"
   }
+  sensitive = true
 }
 
 output "ssh_commands" {
@@ -51,6 +52,7 @@ output "client_connect_examples" {
 output "nginx_stream_config" {
   description = "Rendered nginx stream config deployed to each instance."
   value       = local.nginx_stream_config
+  sensitive   = true
 }
 
 output "tintin_connection_strings" {

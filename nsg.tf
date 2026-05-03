@@ -52,12 +52,24 @@ resource "oci_core_network_security_group_security_rule" "mud_ingress" {
 # ── Ingress: intra-VCN (instance-to-instance) ───────────────────────────────
 
 resource "oci_core_network_security_group_security_rule" "intra_vcn_ingress" {
+  for_each = toset([
+    for port in concat([22], [for p in var.nginx_reverse_proxies : p.listen_port]) :
+    tostring(port)
+  ])
+
   network_security_group_id = oci_core_network_security_group.instances.id
   direction                 = "INGRESS"
-  protocol                  = "all"
+  protocol                  = "6"
 
   source      = var.vcn_cidr
   source_type = "CIDR_BLOCK"
+
+  tcp_options {
+    destination_port_range {
+      min = tonumber(each.value)
+      max = tonumber(each.value)
+    }
+  }
 }
 
 # ── Egress: DNS (UDP + TCP port 53) ─────────────────────────────────────────

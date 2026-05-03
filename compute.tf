@@ -52,6 +52,14 @@ resource "oci_core_instance" "mud_proxy" {
     boot_volume_size_in_gbs = var.boot_volume_gb
   }
 
+  launch_options {
+    is_pv_encryption_in_transit_enabled = true
+  }
+
+  instance_options {
+    are_legacy_imds_endpoints_disabled = true
+  }
+
   create_vnic_details {
     subnet_id        = oci_core_subnet.public.id
     display_name     = "${local.instance_names[count.index]}-vnic"
@@ -70,6 +78,10 @@ resource "oci_core_instance" "mud_proxy" {
 
   # Always Free A1 guardrails — fail plan rather than accumulate charges.
   lifecycle {
+    ignore_changes = [
+      source_details[0].source_id,
+    ]
+
     precondition {
       condition     = var.instance_count * var.ocpu_per_instance <= 4
       error_message = "Total OCPUs (instance_count × ocpu_per_instance) exceeds the Always Free A1 limit of 4."

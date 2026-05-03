@@ -1,9 +1,11 @@
 # Terraform state and plan files
 *.tfstate
 *.tfstate.*
-tfplan**
+tfplan*
 *.tfplan
+*.bin
 plan.json
+state-backups/
 
 # Terraform directory
 .terraform/
