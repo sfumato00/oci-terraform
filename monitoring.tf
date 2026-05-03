@@ -1,9 +1,9 @@
 # ── ONS topic + email subscription ───────────────────────────────────────────
-# Created only when alarm_email is set; alarms always exist and are visible in
-# the OCI Monitoring console regardless.
+# The topic always exists so Monitoring alarms have a valid destination. The
+# email subscription is optional; without it, alarms still publish to the topic
+# and remain visible in the OCI Monitoring console.
 
 resource "oci_ons_notification_topic" "alarms" {
-  count          = var.alarm_email != "" ? 1 : 0
   compartment_id = var.compartment_ocid
   name           = "tlbb-mud-proxy-alarms"
   description    = "Notification topic for mud-proxy monitoring alarms."
@@ -15,46 +15,47 @@ resource "oci_ons_subscription" "email" {
   compartment_id = var.compartment_ocid
   endpoint       = var.alarm_email
   protocol       = "EMAIL"
-  topic_id       = oci_ons_notification_topic.alarms[0].id
+  topic_id       = oci_ons_notification_topic.alarms.id
   freeform_tags  = local.common_tags
 }
 
 locals {
-  alarm_destinations = var.alarm_email != "" ? [oci_ons_notification_topic.alarms[0].id] : []
+  alarm_destinations = [oci_ons_notification_topic.alarms.id]
 }
 
 # ── Monitoring alarms ─────────────────────────────────────────────────────────
-# Both alarms target the compartment level, catching all mud-proxy instances.
-# Destinations is empty when alarm_email is unset; OCI still shows the alarm
-# state in the console.
+# Alarms are created per instance so unrelated compartment metrics do not affect
+# mud-proxy alerting.
 
 resource "oci_monitoring_alarm" "cpu_high" {
+  count                 = var.instance_count
   compartment_id        = var.compartment_ocid
-  display_name          = "mud-proxy-cpu-high"
+  display_name          = "${local.instance_names[count.index]}-cpu-high"
   is_enabled            = true
   metric_compartment_id = var.compartment_ocid
   namespace             = "oci_computeagent"
-  query                 = "CpuUtilization[5m].mean() > ${var.alarm_cpu_threshold}"
+  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[count.index].id}\"}.mean() > ${var.alarm_cpu_threshold}"
   severity              = "WARNING"
   pending_duration      = "PT5M"
   destinations          = local.alarm_destinations
   message_format        = "ONS_OPTIMIZED"
-  body                  = "CPU utilization has exceeded ${var.alarm_cpu_threshold}% on one or more mud-proxy instances for 5 minutes."
+  body                  = "CPU utilization has exceeded ${var.alarm_cpu_threshold}% on ${local.instance_names[count.index]} for 5 minutes."
   freeform_tags         = local.common_tags
 }
 
 resource "oci_monitoring_alarm" "instance_availability" {
+  count                 = var.instance_count
   compartment_id        = var.compartment_ocid
-  display_name          = "mud-proxy-instance-availability"
+  display_name          = "${local.instance_names[count.index]}-availability"
   is_enabled            = true
   metric_compartment_id = var.compartment_ocid
   namespace             = "oci_computeagent"
-  query                 = "CpuUtilization[5m].absent()"
+  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[count.index].id}\"}.absent()"
   severity              = "CRITICAL"
   pending_duration      = "PT5M"
   destinations          = local.alarm_destinations
   message_format        = "ONS_OPTIMIZED"
-  body                  = "A mud-proxy instance has stopped reporting metrics — it may be down or the compute agent may have stopped."
+  body                  = "${local.instance_names[count.index]} has stopped reporting metrics; it may be down or the compute agent may have stopped."
   freeform_tags         = local.common_tags
 }
 

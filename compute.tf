@@ -9,8 +9,8 @@ locals {
     : data.oci_identity_availability_domains.ads.availability_domains[0].name
   ]
 
-  # 10.42.1.11 – 10.42.1.14 (within the public subnet 10.42.1.0/24).
-  instance_ips   = [for i in range(var.instance_count) : "10.42.1.${11 + i}"]
+  # Stable private IPs starting at host .11 within the configured public subnet.
+  instance_ips   = [for i in range(var.instance_count) : cidrhost(var.public_subnet_cidr, 11 + i)]
   instance_names = [for i in range(var.instance_count) : format("mud-proxy-%02d", i + 1)]
 
   # Nginx stream config: rendered from a template for direct top-level inclusion.

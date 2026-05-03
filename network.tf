@@ -36,12 +36,6 @@ resource "oci_core_security_list" "public" {
   vcn_id         = oci_core_vcn.main.id
   display_name   = "${var.project_tag}-public-sl"
 
-  # Allow all outbound by default; NSG rules layer on top for workload egress.
-  egress_security_rules {
-    destination = "0.0.0.0/0"
-    protocol    = "all"
-  }
-
   # ICMP type 3 (destination unreachable) from anywhere — needed for path MTU.
   ingress_security_rules {
     protocol = "1" # ICMP

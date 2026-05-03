@@ -86,8 +86,14 @@ variable "ssh_public_key" {
 }
 
 variable "instance_shape" {
-  description = "Shape of the A1 Flex instance. The shape name encodes OCPU and memory (e.g. A1.Flex2 has 2 OCPUs and 12 GB RAM)."
+  description = "Shape of the Always Free A1 Flex instances."
   type        = string
+  default     = "VM.Standard.A1.Flex"
+
+  validation {
+    condition     = var.instance_shape == "VM.Standard.A1.Flex"
+    error_message = "This stack is constrained to VM.Standard.A1.Flex because image selection and Always Free guardrails are A1-specific."
+  }
 }
 
 variable "instance_count" {
@@ -113,7 +119,7 @@ variable "memory_gb_per_instance" {
   default     = 6
 
   validation {
-    condition = var.instance_count * var.memory_gb_per_instance <= 24
+    condition     = var.instance_count * var.memory_gb_per_instance <= 24
     error_message = "total memory must not exceed 24 GB"
   }
 }
@@ -124,7 +130,7 @@ variable "boot_volume_gb" {
   default     = 50
 
   validation {
-    condition = var.instance_count * var.boot_volume_gb <= 200
+    condition     = var.instance_count * var.boot_volume_gb <= 200
     error_message = "total boot_volume_gb must not exeed 200"
   }
 }
