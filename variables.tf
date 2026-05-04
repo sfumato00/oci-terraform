@@ -97,13 +97,32 @@ variable "instance_shape" {
 }
 
 variable "instance_count" {
-  description = "Number of A1 Flex instances to create (1–4; Always Free cap is 4 total OCPUs / 24 GB)."
+  description = "Number of A1 Flex instances to create when instance_numbers is unset (1-4; Always Free cap is 4 total OCPUs / 24 GB)."
   type        = number
   default     = 4
 
   validation {
     condition     = var.instance_count >= 1 && var.instance_count <= 4
     error_message = "instance_count must be between 1 and 4."
+  }
+}
+
+variable "instance_numbers" {
+  description = "Stable mud-proxy numeric suffixes to manage. Use [2, 3, 4] to keep mud-proxy-02 through mud-proxy-04 while removing mud-proxy-01."
+  type        = list(number)
+  default     = null
+
+  validation {
+    condition = (
+      var.instance_numbers == null ||
+      (
+        length(var.instance_numbers) >= 1 &&
+        length(var.instance_numbers) <= 4 &&
+        length(distinct(var.instance_numbers)) == length(var.instance_numbers) &&
+        alltrue([for n in var.instance_numbers : n >= 1 && n <= 4])
+      )
+    )
+    error_message = "instance_numbers must contain unique values between 1 and 4."
   }
 }
 
@@ -119,7 +138,7 @@ variable "memory_gb_per_instance" {
   default     = 6
 
   validation {
-    condition     = var.instance_count * var.memory_gb_per_instance <= 24
+    condition     = (var.instance_numbers == null ? var.instance_count : length(var.instance_numbers)) * var.memory_gb_per_instance <= 24
     error_message = "total memory must not exceed 24 GB"
   }
 }
@@ -130,7 +149,7 @@ variable "boot_volume_gb" {
   default     = 50
 
   validation {
-    condition     = var.instance_count * var.boot_volume_gb <= 200
+    condition     = (var.instance_numbers == null ? var.instance_count : length(var.instance_numbers)) * var.boot_volume_gb <= 200
     error_message = "total boot_volume_gb must not exeed 200"
   }
 }

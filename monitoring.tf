@@ -28,34 +28,34 @@ locals {
 # mud-proxy alerting.
 
 resource "oci_monitoring_alarm" "cpu_high" {
-  count                 = var.instance_count
+  for_each              = local.instance_numbers_by_key
   compartment_id        = var.compartment_ocid
-  display_name          = "${local.instance_names[count.index]}-cpu-high"
+  display_name          = "${local.instance_names[each.key]}-cpu-high"
   is_enabled            = true
   metric_compartment_id = var.compartment_ocid
   namespace             = "oci_computeagent"
-  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[count.index].id}\"}.mean() > ${var.alarm_cpu_threshold}"
+  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[each.key].id}\"}.mean() > ${var.alarm_cpu_threshold}"
   severity              = "WARNING"
   pending_duration      = "PT5M"
   destinations          = local.alarm_destinations
   message_format        = "ONS_OPTIMIZED"
-  body                  = "CPU utilization has exceeded ${var.alarm_cpu_threshold}% on ${local.instance_names[count.index]} for 5 minutes."
+  body                  = "CPU utilization has exceeded ${var.alarm_cpu_threshold}% on ${local.instance_names[each.key]} for 5 minutes."
   freeform_tags         = local.common_tags
 }
 
 resource "oci_monitoring_alarm" "instance_availability" {
-  count                 = var.instance_count
+  for_each              = local.instance_numbers_by_key
   compartment_id        = var.compartment_ocid
-  display_name          = "${local.instance_names[count.index]}-availability"
+  display_name          = "${local.instance_names[each.key]}-availability"
   is_enabled            = true
   metric_compartment_id = var.compartment_ocid
   namespace             = "oci_computeagent"
-  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[count.index].id}\"}.absent()"
+  query                 = "CpuUtilization[5m]{resourceId=\"${oci_core_instance.mud_proxy[each.key].id}\"}.absent()"
   severity              = "CRITICAL"
   pending_duration      = "PT5M"
   destinations          = local.alarm_destinations
   message_format        = "ONS_OPTIMIZED"
-  body                  = "${local.instance_names[count.index]} has stopped reporting metrics; it may be down or the compute agent may have stopped."
+  body                  = "${local.instance_names[each.key]} has stopped reporting metrics; it may be down or the compute agent may have stopped."
   freeform_tags         = local.common_tags
 }
 

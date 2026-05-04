@@ -1,6 +1,6 @@
 output "instance_names" {
   description = "Display names of the mud-proxy instances."
-  value       = local.instance_names
+  value       = [for n in local.instance_numbers : local.instance_names[tostring(n)]]
 }
 
 output "instance_public_ips" {
@@ -13,7 +13,7 @@ output "instance_public_ips" {
 
 output "instance_private_ips" {
   description = "Static private IPs of each mud-proxy instance."
-  value       = local.instance_ips
+  value       = [for n in local.instance_numbers : local.instance_ips[tostring(n)]]
 }
 
 output "proxy_ports" {
@@ -59,7 +59,7 @@ output "tintin_connection_strings" {
   description = "tintin++ config shortcut."
   value = {
     for i, inst in oci_core_instance.mud_proxy :
-    local.instance_names[i] => "{HOST} {@${inst.public_ip}}"
+    local.instance_names[i] => "{HOST} {${inst.public_ip}}"
   }
 }
 
